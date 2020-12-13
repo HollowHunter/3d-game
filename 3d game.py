@@ -1,5 +1,6 @@
 import pygame
 from math import sin, cos, tan, radians, atan2
+from threading import Thread
 
 
 file_name = input('имя obj файла, пустая строка - системное имя:')
@@ -71,21 +72,46 @@ delta_x, delta_y = width / 2, height / 2
 screen = pygame.display.set_mode(size)
 
 
+def multiShow(cam_data, min, max):  # Наша многопоточная функция
+    global arr_of_plot
+    for line in map_[min:max]:
+        plot1, plot2 = line
+        plot1 = rot(plot1, cam_pos, cam_data)
+        plot2 = rot(plot2, cam_pos, cam_data)
+
+        if plot1[0] > 0 and plot2[0] > 0:
+            arr_of_plot.append((plot1, plot2))
+
+
+
 def render():
+    global arr_of_plot
     cam_angles_data = []
     cam_angles_data.append((dcos(cam_angles[0]), dsin(cam_angles[0])))
     cam_angles_data.append((dcos(cam_angles[1]), dsin(cam_angles[1])))
     cam_angles_data.append((dcos(cam_angles[2]), dsin(cam_angles[2])))
-    for line in map_:
-        plot1, plot2 = line
-        plot1 = rot(plot1, cam_pos, cam_angles_data)
-        plot2 = rot(plot2, cam_pos, cam_angles_data)
+    arr_of_river = []  # Объекты потоков
+    arr_of_plot = []
+    for i in range(multiMathCount):
+        if i != multiMathCount - 1:
+            variable = Thread(target=multiShow, args=(cam_angles_data,
+                                                      one_piece * i, one_piece * (i + 1)),
+                              daemon=True)
+        else:
+            variable = Thread(target=multiShow, args=(cam_angles_data,
+                                                      one_piece * i, len(map_)),
+                              daemon=True)
+        variable.start()
+        arr_of_river.append(variable)
+    for elem in arr_of_river:  # Остонавливаем потоки
+        elem.join()
+    for plots in arr_of_plot:  # Рисуем труды потоков
+        plot1, plot2 = plots
+        x1, y1 = plot1[1] / plot1[0] * scale, plot1[2] / plot1[0] * scale
+        x2, y2 = plot2[1] / plot2[0] * scale, plot2[2] / plot2[0] * scale
+        pygame.draw.line(screen, (255, 255, 255), (int(x1 + delta_x), int(y1 + delta_y)),
+                         (int(x2 + delta_x), int(y2 + delta_y)))
 
-        if plot1[0] > 0 and plot2[0] > 0:
-            x1, y1 = plot1[1] / plot1[0] * scale, plot1[2] / plot1[0] * scale
-            x2, y2 = plot2[1] / plot2[0] * scale, plot2[2] / plot2[0] * scale
-            pygame.draw.line(screen, (255, 255, 255), (int(x1 + delta_x), int(y1 + delta_y)),
-                             (int(x2 + delta_x), int(y2 + delta_y)))
 
     pygame.display.flip()
 
@@ -105,6 +131,9 @@ dsin = lambda x: sin(radians(x))
 
 time = 0
 
+multiMathCount = 15  # Колличевство потоков
+one_piece = len(map_) // multiMathCount  # размер кусочка, который будет обрабатывать поток
+arr_of_plot = []  # Здесь будут лежать труды многопоточности
 
 
 running = True
