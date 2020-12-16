@@ -1,0 +1,194 @@
+﻿import pygame
+from math import sin, cos, tan, radians, atan2, atan, degrees
+
+class Math:
+    cosd = lambda x: cos(radians(x))
+    sind = lambda x: sin(radians(x))
+    tand = lambda x: tan(radians(x))
+    atand = lambda x: degrees(atan(x))
+    prior = lambda data: sum([i*i for i in data])
+
+    def rotate(self, body, rotate_angles, rotate_point, to_zero=False):
+        a, b, c = rotate_angles
+        rotate_data = ((self.cosd(a), self.sind(a)), 
+    	               (self.cosd(b), self.sind(b)), 
+    	               (self.cosd(c), self.sind(c)))
+        del(a, b, c)
+        x0, y0, z0 = rotate_point
+        (cos_a, sin_a), (cos_b, sin_b), (cos_c, sin_c) = rot_data
+        
+        res = []
+        
+        for polygon in body:
+            x, y, z = polygon
+            x -= x0
+            y -= y0
+            z += z0
+
+            x, y, z = x, cos_a * y - sin_a * z, sin_a * y + cos_a * z
+            x, y, z = cos_b * x + sin_b * z, y, cos_b * z - sin_b * x
+            x, y, z = cos_c * x - sin_c * y, cos_c * y + sin_c * x, z
+            
+            if not to_zero:
+                x, y, z = self.v_sum((x, y, z), (x0, y0, z0))
+
+            res.append((x, y, z))
+        # print(pos, (round(x, 5), round(y, 5), round(z, 5)), (x**2+y**2+z**2)-(pos[0]**2 + pos[1]**2 + pos[2]**2))
+
+        return res
+    
+    def m_v_sub(self, vector, matrix):
+        res = []
+        print(matrix, vector)
+        for line in matrix:
+            print('   ', line, vector, res)
+            res.append(sum([i * j for i, j in zip(line, vector)]))
+        return tuple(res)
+    
+    def v_sum(self, a, b):
+        if type(a) in [int, float, complex, str] and type(b) in [int, float, complex, str]:
+            return a + b
+        res = [v_sum(i, j) for i, j in zip(a, b)]
+        if type(a) == tuple:
+            return tuple(res)
+        else:
+            return res
+    
+    def map_to_render(self, phizic_map):
+        plots = []
+        polygons = []
+        max_ = 0
+        for obj in phizic_map:
+            for polygon in obj:
+                new_poly = []
+                for plot in polygon:
+                    if plot in plots:
+                        new_poly.append(plots.index(plot))
+                    else:
+                        plots.append(plot)
+                        new_poly.append(max_)
+                        max_+=1
+                polygons.append(tuple(new_poly))
+        return (plots, polygons)
+    
+    def angles_local_to_global(self, angles):
+        return (self.sind(angles[1]), self.cosd(angles[1]), angles[2])
+
+
+
+
+
+
+class Fhisics:
+    def __init__(self, map_, g):
+        self.map = map_
+        self.g = g
+        self.last_name = 0
+    
+    def move_obj(self, name, delta):
+        if name in self.map:
+            body = self.map[name]
+            body = [Math.v_sum(polygon, delta) for polygon in body]
+            self.map[name] = body
+    
+    def rotate_obj(self, name, angles, center=False):
+        if name in self.map and angles != (0, 0, 0):
+            body = self.map[name]
+            if not center:
+                a, b, c = 0, 0, 0
+                for polygon in data:
+                    a+=polygon[0]
+                    b+=polygon[1]
+                    c+=polygon[2]
+                center = (a/len(data), b/len(data), c/len(data))
+            self.map[name] = Math.rotate(body, angles, center)
+            
+    
+    def add_object(self, body, move=(0, 0, 0), rotate=((0, 0, 0), (0, 0, 0)), name=False):
+        if name==False:
+            name = self.last_name
+            self.last_name+=1
+        self.map[name] = [(a+move[0], b+mpve[1], c+move[2]) for a, b, c in Math.rotate(body, rotate[0], rotate[1])]
+
+
+class Rendrer:
+    def __init__(self, size=(800, 600), scale=400, FPS=60, map_=[], fullscreen=False, doublebuf=True):
+        pygame.init()
+        if doublebuf and not fullscreen:
+            flags=pygame.DOUBLEBUF
+        elif not doublebuf and fullscreen:
+            flags=pygame.FULLSCREEN
+        elif doublebuf and fullscreen:
+            flags=DOUBLEBUF|FULLSCREEN
+        self.screen = pygame.display.set_mode(size, flags=flags)
+        self.size = size
+        self.delta_x, self.delta_y = size[0]//2, size[1]//2
+        self.scale = scale
+        self.map = map_
+        self.cam_pos = (0, 0, 0)
+        self.cam_angles = (0, 0, 0)
+        self.local_cam_angles = (0, 0, 0)
+    
+    def set_map(seld, data):
+        self.map = data
+    
+    def calc_pre_render(self):
+        def calc():
+            render_data = []
+            cam_angles_data = []
+            cam_angles_data.append((Math.cosd(self.cam_angles[0]), Math.sind(self.cam_angles[0])))
+            cam_angles_data.append((Math.cosd(self.cam_angles[1]), Math.sind(self.cam_angles[1])))
+            cam_angles_data.append((Math.cosd(self.cam_angles[2]), Math.sind(self.cam_angles[2])))
+            cam_angles_data = tuple(cam_angles_data)
+            rot_plots = Math.rotate(self.map[0], cam_angles, cam_pos, True)
+            pixels = []
+            prioritis = []
+            for plot in rot_plots:
+                if plot[0] > 0:
+                    x, y = plot[1] / plot[0] * scale, plot[2] / plot[0] * self.scale
+                    pixels.append((x, y))
+                else:
+                    pixels.append(False)
+                prioritis.append(prior(plot))
+
+            for poly in self.map[1]:
+                a, b, c = poly
+                p_a, p_b, p_c = prioritis[a], prioritis[b], prioritis[c]
+                if pixels[a] and pixels[b] and pixels[c]:
+                    render_data.append(((pixels[a], pixels[b], pixels[c]), min(p_a, p_b, p_c)))
+
+            return map(lambda x: x[0], sorted(render_data, key=lambda x: x[1], reverse=True))
+
+
+    def render(self, pre_render_data):
+        for poly in pre_render_data:
+            if poly[0] != poly[1] or poly[1] != poly[2] or poly[0] != poly[2]:
+                # pygame.draw.polygon(screen, (100, 100, 100), v_sum(poly, [(delta_x, delta_y)] * 3))
+                pygame.draw.polygon(self.screen, (255, 255, 255), Math.v_sum(poly, [(delta_x, delta_y)] * 3), 1)
+
+        pygame.display.flip()
+
+
+
+class Game:
+    def __init__(self):
+        self.Phisics = Fhisics({}, 10)
+        self.Math = Math()
+    
+    def init_rendrer(self, size=(800, 600), scale=400, FPS=60, map_=[(), ()], fullscreen=False, doublebuf=True):
+        self.Rendrer = Rendrer(size, scale, FPS, map_, fullscreen, doublebuf)
+
+
+
+game = Game()
+game.init_rendrer()
+
+game.Phisics.add_object('sqr_1', [((0, 0, 0), (0, 0, 1), (0, 1, 1)), ((0, 0, 0), (0, 1, 0), (0, 1, 1))], (5, 0, 0))
+game.Rendrer.set_map(game.Math.map_to_render(game.Phisics.map))
+game.Rendrer.render(game.Rendrer.calc_pre_render())
+pygame.display.flip()
+
+while pygame.event.get().type != pygame.QUIT:
+    pass
+
+pygame.quit()
