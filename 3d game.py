@@ -1,4 +1,5 @@
 import pygame
+from pygame import gfxdraw
 from math import sin, cos, tan, radians, atan2, atan, degrees
 
 file_name = input('имя obj файла, пустая строка - системное имя:')
@@ -149,11 +150,18 @@ clock.tick()
 time_last = 0
 time = 0
 
-fps = 60
+fps = 120
 running = True
 pressed_key = []
 clock = pygame.time.Clock()
+clockfps = pygame.time.Clock()
+clock.tick()
+for i in range(1000000):
+    # screen.fill((255, 255, 255), (50, 50, 1, 1))  # 602 mls
+    # screen.set_at((50, 50), (255, 255, 255))  # 500 mls
+    pygame.gfxdraw.pixel(screen, 50, 50, (255, 255, 255))
 
+print('test', clock.tick())
 while running:
     pygame.draw.rect(screen, (0, 0, 0), (0, 0, width, height))  # Очистку экрана перенёс сюда
 
@@ -208,7 +216,7 @@ while running:
     render(screen, render_data)
     print('render:', clock.tick())
     # cam_angles = (0, cam_angles[1]+1, 0)
-    clock.tick(fps)
+    clockfps.tick(fps)
     pygame.display.flip()
 
 
