@@ -1,0 +1,71 @@
+import pygame
+import Converter
+import Object
+import EventSystem
+import Physics
+import Math
+from sys import path
+path.append('./c_lib')
+import test_3d
+
+'''
+test_3d.lib
+|--test_3d.lib.add_obj_to_map
+|--test_3d.lib.add_texture_to_map
+|--test_3d.lib.create_object
+|--test_3d.lib.delete_object
+|--test_3d.lib.float_to_bytes
+|--test_3d.lib.free_mem
+|--test_3d.lib.get_float_size
+|--test_3d.lib.get_int_size
+|--test_3d.lib.get_map_pointer
+|--test_3d.lib.get_obj_id
+|--test_3d.lib.int_to_bytes
+|--test_3d.lib.move_object
+|--test_3d.lib.print_map
+|--test_3d.lib.print_obj
+|--test_3d.lib.render_plots
+|--test_3d.lib.rotate_object
+'''
+
+
+class Game:
+    def __init__(self):
+        self.Math = Math
+        self.lib = test_3d.lib
+        self.ffi = test_3d.ffi
+        self.max_tex_id = -1
+        self.pygame = pygame
+        self.map = None
+        self.screen_size = (0, 0)
+        self.screen = pygame.Surface
+        self.Converter = Converter.Converter(self.lib, self.ffi)
+        self.Object = Object
+        self.EventSystem = EventSystem.EventSystem(self)
+        self.Physics = Physics.Physics(self)
+
+    def init_screen(self, size, **kwargs):
+        if 'fps' in kwargs:
+            fps = kwargs['fps']
+        else:
+            fps = 30
+        self.EventSystem.set_fps(fps)
+        self.pygame.init()
+        self.screen = pygame.display.set_mode(size, flags=self.pygame.DOUBLEBUF)
+        self.screen_size = size
+
+    def quit(self, event):
+        self.pygame.quit()
+        exit(0)
+
+    def add_texture(self, file_name):
+        try:
+            img = pygame.image.load(file_name)
+            tex = pygame.image.tostring(img, 'RGBA')
+            size_x, size_y = img.get_width(), img.get_width()
+            self.lib.add_texture_to_map(self.map, size_x, size_y, tex)
+            self.max_tex_id += 1
+            return self.max_tex_id
+        except Exception as err:
+            print(err, err.__suppress_context__, err.__traceback__, sep='\n')
+            return -1
